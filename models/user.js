@@ -10,7 +10,9 @@ const userSchema = new mongoose.Schema({
     password: { type: String },
     created: { type: Date, default: Date.Now },
     words: { type: Object, default: null },
-    lastWord: { type: Object, default: null }
+    lastWord: { type: Object, default: null },
+    grade: { type: Number, default: 1 },
+    experience: { type: Number, default: 0 }
   },
   google: {
     firstname: { type: String, default: null },

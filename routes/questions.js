@@ -4,7 +4,14 @@ const express = require('express')
 const router = express.Router()
 const User = require('../models/user')
 const jwtDecode = require('jwt-decode')
-const { SingleLinkedList, insertAt, createWord, insertLast, convertToArray, getSize } = require('../ds/SLL')
+const {
+  SingleLinkedList,
+  insertAt,
+  createWord,
+  insertLast,
+  convertToArray,
+  getSize
+} = require('../ds/SLL')
 const questions = require('../db/seed/wordbank.json')
 
 function getUsername(request) {
@@ -30,23 +37,6 @@ function getRandomWords(questions, size) {
   return result
 }
 
-// function getRandomGoodFeedback(currentWord) {
-//   const wordbank = [
-//     `Correct! ${currentWord.question} means "${currentWord.answer}" in Simlish.`,
-//     `${currentWord.answer} is correct`,
-//     `${currentWord.answer} means "${currentWord.question}" in English`
-//   ]
-//   return wordbank[Math.floor(Math.random() * 3)]
-// }
-
-// function getRandomBadFeedback(currentWord) {
-//   const wordbank = [
-//     `Wrong! It's ${currentWord.answer}`,
-//     `Repeat after me: ${currentWord.answer}!`,
-//     `Try harder, it's ${currentWord.answer}`
-//   ]
-//   return wordbank[Math.floor(Math.random() * 3)]
-// }
 router.get('/generate', (req, res, next) => {
   const username = getUsername(req)
   let sll = new SingleLinkedList()
@@ -56,7 +46,11 @@ router.get('/generate', (req, res, next) => {
       // add math.random to grab random group of words from the array
       const questionSet = getRandomWords(questions, 10)
       questionSet.forEach(word => sll.insertFirst(word))
-      return User.findOneAndUpdate({ 'local.username': username }, { 'local.words': user.local.words }, { new: true })
+      return User.findOneAndUpdate(
+        { 'local.username': username },
+        { 'local.words': user.local.words },
+        { new: true }
+      )
     })
     .then(result => {
       if (!result) {
@@ -81,7 +75,8 @@ router.get('/question', (req, res, next) => {
       question = null
     }
     question = user.local.words.head.question
-    return res.status(200).json({ question })
+    const { grade, experience } = user.local
+    return res.status(200).json({ question, grade, experience })
   })
 })
 
@@ -97,10 +92,18 @@ router.post('/answer', (req, res, next) => {
       const words = user.local.words
       const currentWord = words.head
       let mIndex = words.head.M
+      let exp = Number(user.local.experience)
+      let grade = Number(user.local.grade)
+      let carrier = 0
       // console.log(answer)
       if (answer.toLowerCase() === currentWord.answer.toLowerCase()) {
         feedback = { status: 'good', answer, correctAnswer: currentWord.answer }
         words.head.M *= 2
+        exp = exp + 10
+        if (exp >= 100) {
+          carrier = 1
+          exp = exp - 100
+        }
       } else {
         words.head.inCorrect += 1
         words.head.M = 2
@@ -108,7 +111,11 @@ router.post('/answer', (req, res, next) => {
       }
       words.head.totalAttempt += 1
       insertAt(words, currentWord, mIndex)
-      return User.findOneAndUpdate({ 'local.username': username }, { 'local.words': words }, { new: true })
+      return User.findOneAndUpdate(
+        { 'local.username': username },
+        { 'local.words': words, 'local.experience': exp, 'local.grade': grade + carrier },
+        { new: true }
+      )
     })
     .then(() => {
       return res.json(feedback)
@@ -117,9 +124,7 @@ router.post('/answer', (req, res, next) => {
       next(err)
     })
 })
-//todo:
-// router.get('/report')
-// res.json(result)
+
 router.get('/report', (req, res, next) => {
   const userName = getUsername(req)
   let report = null

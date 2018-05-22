@@ -21,7 +21,6 @@ router.post('/login', localAuth, function(req, res) {
   const { id } = req.user
   const { firstname, username } = req.user.local
   const user = { id, firstname, username }
-  console.log(user)
   const authToken = createAuthToken(user)
   return res.json({ authToken })
 })
